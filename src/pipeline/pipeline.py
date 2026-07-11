@@ -1,80 +1,44 @@
 """
-Main ETL pipeline.
-
-Pipeline flow
-
-Extract
-    ↓
-Transform
-    ↓
-Load
+ETL Pipeline
 """
 
 from time import perf_counter
 
+from config.settings import settings
 from database.repository import JobRepository
 from scraper.scrape_jobs import scrape_jobs
 from utils.logger import get_logger
 
-# Create a logger for this module.
 logger = get_logger(__name__)
 
 
-def run_pipeline(url: str) -> None:
-    """
-    Execute the ETL pipeline.
+def run_pipeline():
 
-    Args:
-        url: URL to scrape.
-    """
+    logger.info("Pipeline started")
 
-    logger.info("Starting ETL pipeline")
-
-    start_time = perf_counter()
+    start = perf_counter()
 
     repository = JobRepository()
 
-    inserted = 0
-    skipped = 0
-
     try:
-        # Extract and clean jobs.
-        jobs = scrape_jobs(url)
 
-        logger.info("Extracted %d jobs", len(jobs))
+        jobs = scrape_jobs(settings.base_url)
 
-        # Load jobs into PostgreSQL.
-        for job in jobs:
+        inserted = repository.save_many(jobs)
 
-            if repository.save(job):
-                inserted += 1
-            else:
-                skipped += 1
+        skipped = len(jobs) - inserted
 
-        duration = perf_counter() - start_time
-
-        logger.info("Inserted %d jobs", inserted)
-        logger.info("Skipped %d duplicate jobs", skipped)
-        logger.info("Pipeline finished in %.2f seconds", duration)
-
-    except Exception:
-        # Logs the exception together with the full traceback.
-        logger.exception("Pipeline execution failed")
-        raise
+        logger.info("Scraped : %d", len(jobs))
+        logger.info("Inserted: %d", inserted)
+        logger.info("Skipped : %d", skipped)
+        logger.info(
+            "Finished in %.2f seconds",
+            perf_counter() - start,
+        )
 
     finally:
         repository.close()
 
 
-def main() -> None:
-    """
-    Development entry point.
-    """
-
-    url = "https://realpython.github.io/fake-jobs/"
-
-    run_pipeline(url)
-
-
 if __name__ == "__main__":
-    main()
+    run_pipeline()
