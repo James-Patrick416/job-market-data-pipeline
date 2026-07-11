@@ -1,0 +1,23 @@
+# What I Learned Building the Job Market Data Pipeline
+
+This project was my first attempt at building a production-inspired ETL (Extract, Transform, Load) pipeline instead of just writing a web scraper. I wanted to understand how data moves from a source into a database while following software engineering best practices. Rather than focusing only on getting the project to work, I concentrated on building it in a way that is modular, maintainable, and scalable.
+
+One of the biggest lessons I learned was the importance of planning before writing code. I started by designing the project structure, creating a clear folder hierarchy, and using Git from the very beginning. Breaking the project into separate modules for scraping, cleaning, database operations, and pipeline orchestration made the code much easier to understand and maintain. It also reinforced the idea that each component should have a single responsibility.
+
+I learned how to build a web scraper using `requests` and `BeautifulSoup`, beginning with downloading HTML pages, parsing them, extracting data from a single job listing, and eventually collecting multiple records. Instead of jumping straight into scraping everything, I built the scraper incrementally, testing one small piece at a time before moving to the next. That approach made debugging much simpler and taught me the value of developing software in small, verifiable steps.
+
+Data quality became another important lesson throughout the project. Rather than loading raw scraped data directly into the database, I introduced a cleaning layer that standardized values before validating them with Pydantic. This showed me that reliable data pipelines don't just collect data, they also ensure the data is consistent and meets predefined rules before it reaches storage.
+
+Working with PostgreSQL and SQLAlchemy helped me understand how applications interact with relational databases. I learned how to design a database schema, define models using the ORM, establish database sessions, and separate database logic into a repository layer. This abstraction made the rest of the application independent of database implementation details and highlighted why clean architecture matters in larger projects.
+
+One concept that stood out was incremental loading. Instead of inserting duplicate records every time the scraper ran, I implemented PostgreSQL's `ON CONFLICT DO NOTHING` functionality to make the pipeline idempotent. This taught me that production pipelines should be designed to run repeatedly without corrupting or duplicating existing data.
+
+I also learned the importance of building resilient applications. By introducing configuration management through environment variables, retry logic with exponential backoff, and custom exceptions, I gained a better understanding of how production systems handle temporary failures instead of crashing immediately. These improvements made the pipeline more reliable and easier to configure across different environments.
+
+Logging was another major improvement. I replaced simple print statements with structured logging that records timestamps, log levels, module names, and messages both in the terminal and in log files. This gave me a better appreciation for observability and how engineers troubleshoot long-running pipelines in production environments.
+
+Performance was another area where my understanding grew. Initially, I inserted one record into the database at a time, but later refactored the pipeline to perform bulk inserts using SQLAlchemy and PostgreSQL. This demonstrated why databases are optimized for processing batches of data rather than handling individual transactions repeatedly.
+
+Beyond the technical concepts, this project strengthened my understanding of software engineering practices. I became more comfortable using Git for version control, Docker for creating consistent development environments, virtual environments for dependency isolation, and tools such as Black, Ruff, and Pytest to improve code quality and maintainability.
+
+Overall, this project taught me that building a data pipeline is much more than scraping data from a website. It involves designing systems that are modular, reliable, testable, observable, and efficient. More importantly, it shifted my mindset from writing scripts that simply work to building software that could realistically be maintained, extended, and deployed in a production environment.
