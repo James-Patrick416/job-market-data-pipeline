@@ -1,27 +1,36 @@
 """
 Main ETL pipeline.
 
-Pipeline flow:
+Pipeline flow
 
-1. Extract job listings from a website.
-2. Clean the extracted data.
-3. Load the cleaned data into PostgreSQL.
-4. Print a pipeline summary.
-
-This module coordinates the entire application.
+Extract
+    ↓
+Transform
+    ↓
+Load
 """
 
-from scraper.scrape_jobs import scrape_jobs
+from time import perf_counter
+
 from database.repository import JobRepository
+from scraper.scrape_jobs import scrape_jobs
+from utils.logger import get_logger
+
+# Create a logger for this module.
+logger = get_logger(__name__)
 
 
 def run_pipeline(url: str) -> None:
     """
-    Execute the complete ETL pipeline.
+    Execute the ETL pipeline.
 
     Args:
-        url: URL of the page to scrape.
+        url: URL to scrape.
     """
+
+    logger.info("Starting ETL pipeline")
+
+    start_time = perf_counter()
 
     repository = JobRepository()
 
@@ -29,27 +38,31 @@ def run_pipeline(url: str) -> None:
     skipped = 0
 
     try:
-        # Extract and clean all jobs.
+        # Extract and clean jobs.
         jobs = scrape_jobs(url)
 
-        # Load each job into PostgreSQL.
-        for job in jobs:
-            success = repository.save(job)
+        logger.info("Extracted %d jobs", len(jobs))
 
-            if success:
+        # Load jobs into PostgreSQL.
+        for job in jobs:
+
+            if repository.save(job):
                 inserted += 1
             else:
                 skipped += 1
 
-        # Print pipeline summary.
-        print("\nPipeline completed successfully.")
-        print("-" * 40)
-        print(f"Jobs scraped : {len(jobs)}")
-        print(f"Inserted     : {inserted}")
-        print(f"Skipped      : {skipped}")
+        duration = perf_counter() - start_time
+
+        logger.info("Inserted %d jobs", inserted)
+        logger.info("Skipped %d duplicate jobs", skipped)
+        logger.info("Pipeline finished in %.2f seconds", duration)
+
+    except Exception:
+        # Logs the exception together with the full traceback.
+        logger.exception("Pipeline execution failed")
+        raise
 
     finally:
-        # Always release the database connection.
         repository.close()
 
 

@@ -1,0 +1,5 @@
+2026-07-12 00:30:59 | INFO     | __main__ | Starting ETL pipeline
+2026-07-12 00:30:59 | INFO     | __main__ | Extracted 100 jobs
+2026-07-12 00:31:00 | INFO     | __main__ | Inserted 0 jobs
+2026-07-12 00:31:00 | INFO     | __main__ | Skipped 100 duplicate jobs
+2026-07-12 00:31:00 | INFO     | __main__ | Pipeline finished in 1.32 seconds
