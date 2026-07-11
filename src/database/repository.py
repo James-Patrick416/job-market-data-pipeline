@@ -1,15 +1,16 @@
 """
-Repository layer for database operations.
+Repository layer.
 
-This module is the only part of the application that should communicate
-directly with PostgreSQL. It hides SQLAlchemy details from the rest of
-the pipeline.
+All database interactions are centralized here.
+
+The repository hides SQLAlchemy implementation details from the rest
+of the application.
 """
 
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.dialects.postgresql import insert
 
 from database.database import SessionLocal
 from database.models import Job
@@ -17,29 +18,29 @@ from database.models import Job
 
 class JobRepository:
     """
-    Repository responsible for CRUD operations on jobs.
+    Repository responsible for persisting jobs.
     """
 
     def __init__(self) -> None:
-        """
-        Create a new database session.
-        """
         self.session = SessionLocal()
 
     def save(self, job: dict[str, Any]) -> bool:
         """
-        Save a job to PostgreSQL.
+        Insert a job into PostgreSQL.
 
-        Args:
-            job: Cleaned job dictionary.
+        Duplicate job URLs are ignored using PostgreSQL's
+        ON CONFLICT DO NOTHING.
 
-        Returns:
-            True if inserted successfully.
-            False if the job already exists.
+        Returns
+        -------
+        bool
+            True if inserted.
+            False if skipped.
         """
 
-        try:
-            job_record = Job(
+        statement = (
+            insert(Job)
+            .values(
                 title=job["title"],
                 company=job["company"],
                 location=job["location"],
@@ -49,19 +50,17 @@ class JobRepository:
                 job_url=job["job_url"],
                 scraped_at=datetime.now(),
             )
+            .on_conflict_do_nothing(
+                index_elements=["job_url"]
+            )
+        )
 
-            self.session.add(job_record)
-            self.session.commit()
+        result = self.session.execute(statement)
+        self.session.commit()
 
-            return True
-
-        except IntegrityError:
-            # Duplicate URL or another constraint violation.
-            self.session.rollback()
-            return False
+        # PostgreSQL returns one affected row when inserted.
+        return result.rowcount == 1
 
     def close(self) -> None:
-        """
-        Close the current database session.
-        """
+        """Close the database session."""
         self.session.close()
