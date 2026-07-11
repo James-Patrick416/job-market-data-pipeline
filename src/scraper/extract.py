@@ -1,31 +1,31 @@
-from scraper.client import fetch_page
-from scraper.parser import parse_html
+from bs4 import Tag
 
-# Website used for learning web scraping.
-URL = "https://realpython.github.io/fake-jobs/"
 
-# Download the HTML.
-html = fetch_page(URL)
+def extract_job(job_card: Tag) -> dict:
+    """
+    Extract information from a single job card.
 
-# Parse the HTML.
-soup = parse_html(html)
+    Args:
+        job_card: A BeautifulSoup Tag representing one job listing.
 
-# Find the first job card.
-job_card = soup.find("div", class_="card-content")
+    Returns:
+        A dictionary containing the job details.
+    """
 
-# Ensure a job card was found.
-if job_card is None:
-    raise ValueError("No job card found on the page.")
+    # Extract the required HTML elements.
+    title = job_card.find("h2", class_="title")
+    company = job_card.find("h3", class_="company")
+    location = job_card.find("p", class_="location")
 
-# Extract the job title.
-title = job_card.find("h2", class_="title")
+    # The footer contains the "Apply" link.
+    footer = job_card.find("footer")
 
-# Extract the company name.
-company = job_card.find("h3", class_="company")
+    # Get the first link inside the footer.
+    link = footer.find("a") if footer else None
 
-# Extract the location.
-location = job_card.find("p", class_="location")
-
-print(f"Title    : {title.get_text(strip=True)}")
-print(f"Company  : {company.get_text(strip=True)}")
-print(f"Location : {location.get_text(strip=True)}")
+    return {
+        "title": title.get_text(strip=True) if title else None,
+        "company": company.get_text(strip=True) if company else None,
+        "location": location.get_text(strip=True) if location else None,
+        "job_url": link["href"] if link else None,
+    }
